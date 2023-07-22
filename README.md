@@ -1,5 +1,6 @@
 # Research Download tiktok videos with Selenium.
 Tech: Net 7.0 / Maui. 
+
 1/ Tools -> NuGet Package Manager -> Manage NuGet Packages for Solution:
   + Selenium.WebDriver
   + Selenium.Support
@@ -15,5 +16,10 @@ Tech: Net 7.0 / Maui.
         driver.GoToUrl(url);
         var htmlbody = driver.PageSource;
 		}
+```
+ + Allow driver run background.
+```
+	ChromeOptions options = new ChromeOptions();
+	options.AddArguments("--headless");
 ```
 
