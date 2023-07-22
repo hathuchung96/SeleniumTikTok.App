@@ -3,3 +3,5 @@
   + Selenium.WebDriver
   + Selenium.Support
   + Selenium.WebDriver.ChromeDriver
+  + Cause tiktok detect selenium so we should install Selenium.UndetectedChromeDriver
+
