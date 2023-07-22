@@ -5,3 +5,14 @@
   + Selenium.WebDriver.ChromeDriver
   + Cause tiktok detect selenium so we should install Selenium.UndetectedChromeDriver
 
+2/ Logic:
+
+  + Init driver 
+```
+  using (var driver = UndetectedChromeDriver.Create( driverExecutablePath: await new ChromeDriverInstaller().Auto()))
+		{
+        driver.GoToUrl(url);
+        var htmlbody = driver.PageSource;
+		}
+```
+
