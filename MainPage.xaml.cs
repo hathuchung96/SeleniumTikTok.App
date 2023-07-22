@@ -1,5 +1,6 @@
 ﻿namespace SeleniumTikTok;
 using Newtonsoft.Json.Linq;
+using OpenQA.Selenium.Chrome;
 using SeleniumUndetectedChromeDriver;
 using System;
 using System.Net;
@@ -23,10 +24,15 @@ public partial class MainPage : ContentPage
 			Err.TextColor = Colors.Red;
 			return;
 		}
-
-		using (var driver = UndetectedChromeDriver.Create(
+		ChromeOptions options = new ChromeOptions();
+		options.AddArguments("--headless");
+        options.AddArguments("disable-popup-blocking");
+        options.AddArguments("--disable-extensions");
+        options.AddArguments("--silent");
+        options.AddArguments("--log-lebel=3");
+        using (var driver = UndetectedChromeDriver.Create(
 			driverExecutablePath:
-			await new ChromeDriverInstaller().Auto()))
+			await new ChromeDriverInstaller().Auto(),options:options))
 		{
 
 			driver.GoToUrl(url); //"https://www.tiktok.com/@jinzng169"
@@ -73,7 +79,7 @@ public partial class MainPage : ContentPage
 
     private void UrlTikTok_TextChanged(object sender, TextChangedEventArgs e)
     {
-        Err.Text = "";;
+        Err.Text = "";
     }
 }
 
