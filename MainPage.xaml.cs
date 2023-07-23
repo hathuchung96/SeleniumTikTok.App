@@ -43,6 +43,7 @@ public partial class MainPage : ContentPage
 			{
 				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
 			});
+
 			while (true)
 			{
 				IJavaScriptExecutor jswait = (IJavaScriptExecutor)driver;
@@ -51,9 +52,11 @@ public partial class MainPage : ContentPage
 				var currentlocation = int.Parse(driver.ExecuteScript("return window.pageYOffset").ToString());
                 //bool security = driver.PageSource.Contains("security-capcha-"); -- Check security capcha
 				Thread.Sleep(2000);
+                System.Diagnostics.Debug.WriteLine($"Current height {currentlocation}");
                 if (currentlocation == lastlocation) break;
 				lastlocation = currentlocation;
 			}
+
 			string key = $"{driver.Url.Split('/')[3]}/video";
 			var datalist = ExtractLink(driver.PageSource).Where(x => x.Contains(key));
             Err.Text += $"Total Videos: {datalist.Count()}\n";
@@ -103,5 +106,38 @@ public partial class MainPage : ContentPage
     {
         Err.Text = "";
     }
+
+	private async void LoginTikTok_Clicked(object sender, EventArgs e)
+	{
+		ChromeOptions options = new ChromeOptions();
+		//options.AddArguments("--headless");
+		options.AddArguments("disable-popup-blocking");
+		options.AddArguments("--disable-extensions");
+		options.AddArguments("--silent");
+		options.AddArguments("--log-lebel=3");
+		using (var driver = UndetectedChromeDriver.Create(
+			driverExecutablePath:
+			await new ChromeDriverInstaller().Auto(), options: options))
+		{
+			driver.GoToUrl("https://www.tiktok.com/login/phone-or-email/email"); //https://www.tiktok.com/login/phone-or-email/email https://www.tiktok.com/foryou
+			OpenQA.Selenium.Support.UI.WebDriverWait wait = new OpenQA.Selenium.Support.UI.WebDriverWait(driver, TimeSpan.FromSeconds(30));
+			wait.Until((x) =>
+			{
+				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+			});
+
+			try // Set Username and password
+			{
+				driver.FindElement(By.ClassName("tiktok-11to27l-InputContainer")).SendKeys(Username.Text);
+				driver.FindElement(By.ClassName("tiktok-wv3bkt-InputContainer")).SendKeys(Password.Text);
+                driver.FindElement(By.ClassName("tiktok-11sviba-Button-StyledButton")).Click();
+            }
+			catch (Exception ex) { }
+			while (true)
+			{
+
+			}
+		};
+	}
 }
 

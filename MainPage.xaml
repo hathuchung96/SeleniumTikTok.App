@@ -8,7 +8,35 @@
             Spacing="25"
             Padding="30,0"
             VerticalOptions="Center">
-
+            <Label
+                Text="Username"
+                FontSize="32"
+                HorizontalOptions="Center" />
+            <Entry
+                x:Name="Username"
+                 FontSize="32"
+                WidthRequest="400"
+                MaximumWidthRequest="400"
+                HorizontalOptions="Center"
+               />
+            <Label
+                Text="Password"
+                FontSize="32"
+                HorizontalOptions="Center" />
+            <Entry
+                x:Name="Password"
+                 FontSize="32"
+                WidthRequest="400"
+                MaximumWidthRequest="400"
+                HorizontalOptions="Center"
+               />
+            <Button
+                x:Name="LoginTikTok"
+                 Text="Click to login tiktok"
+                SemanticProperties.Hint="Just click ..."
+                Clicked="LoginTikTok_Clicked"
+                HorizontalOptions="Center"
+                />
             <Label
                 Text="Input URL TikTok"
                 SemanticProperties.HeadingLevel="Level1"
@@ -18,7 +46,7 @@
                 x:Name="UrlTikTok"
                  FontSize="32"
                 WidthRequest="400"
-                MaximumWidthRequest="300"
+                MaximumWidthRequest="400"
                 HorizontalOptions="Center"
                 TextChanged="UrlTikTok_TextChanged"
                />
