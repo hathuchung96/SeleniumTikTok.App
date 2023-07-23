@@ -126,18 +126,74 @@ public partial class MainPage : ContentPage
 				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
 			});
 
-			try // Set Username and password
+            Random rnd = new Random();
+            try // Set Username and password
 			{
-				driver.FindElement(By.ClassName("tiktok-11to27l-InputContainer")).SendKeys(Username.Text);
-				driver.FindElement(By.ClassName("tiktok-wv3bkt-InputContainer")).SendKeys(Password.Text);
-                driver.FindElement(By.ClassName("tiktok-11sviba-Button-StyledButton")).Click();
+				foreach(var d in Username.Text)
+				{
+                    driver.FindElement(By.ClassName("tiktok-11to27l-InputContainer")).SendKeys(d.ToString());
+                    Thread.Sleep(rnd.Next(200,300));
+                }
+                Thread.Sleep(1000);
+                foreach (var d in Password.Text)
+                {
+                    driver.FindElement(By.ClassName("tiktok-wv3bkt-InputContainer")).SendKeys(d.ToString());
+                    Thread.Sleep(rnd.Next(200, 300));
+                }
+				while (true)
+				{
+                    Thread.Sleep(2000);
+                    driver.FindElement(By.ClassName("tiktok-11sviba-Button-StyledButton")).Click();
+                    Thread.Sleep(2000);
+                    if (!driver.PageSource.Contains("Maximum number of attempts reached"))
+						break;                 
+                }
             }
 			catch (Exception ex) { }
-			while (true)
-			{
+            Thread.Sleep(5000);
+            wait.Until((x) =>
+            {
+                return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+            });
 
-			}
-		};
+            /* Old logic code, after finish load, swith driver to iframe driver.switchTo().frame("iFrameName");
+			driver.GoToUrl("https://www.tiktok.com/upload?lang=en");
+			wait.Until((x) =>
+			{
+				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+			});
+			Thread.Sleep(10000);
+			System.Diagnostics.Debug.WriteLine(driver.PageSource);
+			driver.FindElement(By.ClassName("css-1db5cpb")).Click();
+			*/
+            driver.GoToUrl("https://www.tiktok.com/creator#/upload?lang=en");
+            wait.Until((x) =>
+            {
+                return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+            });	
+            Thread.Sleep(5000);
+            
+            //driver.FindElement(By.ClassName("css-1db5cpb")).Click();
+            driver.FindElement(By.XPath("//input[@type='file']")).SendKeys(@$"{VideoPath.Text}");
+            Thread.Sleep(5000);
+
+            wait.Until((x) =>
+            {
+                return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+            });
+
+            Thread.Sleep(1000);
+
+            foreach (var d in Title.Text.ToString())
+            {
+                driver.FindElement(By.ClassName("public-DraftStyleDefault-block")).SendKeys(d.ToString());
+                Thread.Sleep(rnd.Next(200, 300));
+            }
+
+            driver.FindElement(By.ClassName("css-y1m958")).Click();
+
+            Thread.Sleep(5000);
+        };
 	}
 }
 
