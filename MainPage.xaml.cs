@@ -1,5 +1,6 @@
 ﻿namespace SeleniumTikTok;
 using Newtonsoft.Json.Linq;
+using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using SeleniumUndetectedChromeDriver;
 using System;
@@ -25,31 +26,52 @@ public partial class MainPage : ContentPage
 			return;
 		}
 		ChromeOptions options = new ChromeOptions();
-		options.AddArguments("--headless");
-        options.AddArguments("disable-popup-blocking");
-        options.AddArguments("--disable-extensions");
-        options.AddArguments("--silent");
-        options.AddArguments("--log-lebel=3");
-        using (var driver = UndetectedChromeDriver.Create(
+		//options.AddArguments("--headless");
+		options.AddArguments("disable-popup-blocking");
+		options.AddArguments("--disable-extensions");
+		options.AddArguments("--silent");
+		options.AddArguments("--log-lebel=3");
+		using (var driver = UndetectedChromeDriver.Create(
 			driverExecutablePath:
-			await new ChromeDriverInstaller().Auto(),options:options))
+			await new ChromeDriverInstaller().Auto(), options: options))
 		{
 
 			driver.GoToUrl(url); //"https://www.tiktok.com/@jinzng169"
-			var htmlbody = driver.PageSource;
-			string key = $"{driver.Url.Split('/')[3]}/video";
-			var datalist = ExtractLink(htmlbody).Where(x => x.Contains(key));
-			foreach (var d in datalist)
+			int lastlocation = -1;
+			OpenQA.Selenium.Support.UI.WebDriverWait wait = new OpenQA.Selenium.Support.UI.WebDriverWait(driver, TimeSpan.FromSeconds(30));
+			wait.Until((x) =>
 			{
-				var videourl = d.Split('/');
-				using (WebClient client = new WebClient())
-				{
-					var urlt = $"https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/feed/?aweme_id={videourl[videourl.Count() - 1]}";
-					string htmlCode = client.DownloadString(urlt);
-					Err.Text += $"{GetDownloadUrl(htmlCode)}\n";
-				}
+				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+			});
+			while (true)
+			{
+				IJavaScriptExecutor jswait = (IJavaScriptExecutor)driver;
+				driver.ExecuteScript("window.scrollTo(0, document.body.scrollHeight)");
+
+				var currentlocation = int.Parse(driver.ExecuteScript("return window.pageYOffset").ToString());
+                //bool security = driver.PageSource.Contains("security-capcha-"); -- Check security capcha
+				Thread.Sleep(2000);
+                if (currentlocation == lastlocation) break;
+				lastlocation = currentlocation;
 			}
+			string key = $"{driver.Url.Split('/')[3]}/video";
+			var datalist = ExtractLink(driver.PageSource).Where(x => x.Contains(key));
+            Err.Text += $"Total Videos: {datalist.Count()}\n";
+            foreach (var d in datalist)
+			{
+				/*
+                var videourl = d.Split('/');
+                using (WebClient client = new WebClient())
+                {
+                    var urlt = $"https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/feed/?aweme_id={videourl[videourl.Count() - 1]}";
+                    string htmlCode = client.DownloadString(urlt);
+                    Err.Text += $"{GetDownloadUrl(htmlCode)}\n";
+                }
+				*/
+                Err.Text += $"{d}\n";
+            }
 		}
+
 		Err.TextColor = Colors.Green;
 	}
 
