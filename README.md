@@ -42,4 +42,37 @@ Tech: Net 7.0 / Maui.
 		lastlocation = currentlocation;
 	}
 ```
-
++ Typing username / password with random speed like human
+```
+foreach(var d in Username.Text)
+				{
+                    driver.FindElement(By.ClassName("tiktok-11to27l-InputContainer")).SendKeys(d.ToString());
+                    Thread.Sleep(rnd.Next(200,300));
+                }
+                Thread.Sleep(1000);
+                foreach (var d in Password.Text)
+                {
+                    driver.FindElement(By.ClassName("tiktok-wv3bkt-InputContainer")).SendKeys(d.ToString());
+                    Thread.Sleep(rnd.Next(200, 300));
+                }
+```
++ Login into tiktok and try until success
+```
+	while (true)
+	{
+		Thread.Sleep(2000);
+		driver.FindElement(By.ClassName("tiktok-11sviba-Button-StyledButton")).Click();
+		Thread.Sleep(2000);
+		if (!driver.PageSource.Contains("Maximum number of attempts reached"))
+			break;                 
+	}
+```
++ Set video path
+```
+ 	driver.FindElement(By.XPath("//input[@type='file']")).SendKeys(@$"{VideoPath.Text}");
+	Thread.Sleep(5000);
+	wait.Until((x) =>
+	{
+		return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+	});
+```
