@@ -26,12 +26,21 @@ public partial class MainPage : ContentPage
 			return;
 		}
 		ChromeOptions options = new ChromeOptions();
-		//options.AddArguments("--headless");
-		options.AddArguments("disable-popup-blocking");
-		options.AddArguments("--disable-extensions");
-		options.AddArguments("--silent");
-		options.AddArguments("--log-lebel=3");
-		using (var driver = UndetectedChromeDriver.Create(
+        options.AddArguments("--window-size=1920,1080");
+        options.AddArguments("--disable-extensions");
+        options.AddArguments("--start-maximized");
+        options.AddArguments("--proxy-server='direct://'");
+        options.AddArguments("--proxy-bypass-list=*");
+        options.AddArguments("--start-maximized");
+        options.AddArguments("--headless=new");
+        options.AddArguments("--ignore-certificate-errors");
+        options.AddArguments("--allow-running-insecure-content");
+        options.AddArguments("--disable-gpu");
+        options.AddArguments("--disable-dev-shm-usage");
+        options.AddArguments("--no-sandbox");
+        options.AddArgument("--log-level=3");
+        options.AddArguments("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36");
+        using (var driver = UndetectedChromeDriver.Create(
 			driverExecutablePath:
 			await new ChromeDriverInstaller().Auto(), options: options))
 		{
@@ -183,6 +192,11 @@ public partial class MainPage : ContentPage
             });
 
             Thread.Sleep(1000);
+			try
+			{
+
+                driver.FindElement(By.ClassName("css-72rvq0")).Click();
+            } catch (Exception ex) { }
 
             foreach (var d in Title.Text.ToString())
             {
