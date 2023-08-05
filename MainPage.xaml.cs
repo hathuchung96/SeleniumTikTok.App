@@ -2,212 +2,343 @@
 using Newtonsoft.Json.Linq;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Interactions;
 using SeleniumUndetectedChromeDriver;
 using System;
+using System.Collections.ObjectModel;
 using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 
 public partial class MainPage : ContentPage
 {
 
-	public MainPage()
+    ObservableCollection<LoginObject> loginData = new ObservableCollection<LoginObject>();
+    public ObservableCollection<LoginObject> LoginData { get { return loginData; } }
+    public MainPage()
 	{
 		InitializeComponent();
 	}
-	private string urlKey = "url_list\":[\"";
-
-	private async void OpenTikTok_Clicked(object sender, EventArgs e)
-	{
-		var url = UrlTikTok.Text.Trim();
-		if (String.IsNullOrEmpty(url) || url.Split('/').Count() != 4)
-		{
-			Err.Text = "Invalid Tiktok url!";
-			Err.TextColor = Colors.Red;
-			return;
-		}
-		ChromeOptions options = new ChromeOptions();
-        options.AddArguments("--window-size=1920,1080");
-        options.AddArguments("--disable-extensions");
-        options.AddArguments("--start-maximized");
-        options.AddArguments("--proxy-server='direct://'");
-        options.AddArguments("--proxy-bypass-list=*");
-        options.AddArguments("--start-maximized");
-        options.AddArguments("--headless=new");
-        options.AddArguments("--ignore-certificate-errors");
-        options.AddArguments("--allow-running-insecure-content");
-        options.AddArguments("--disable-gpu");
-        options.AddArguments("--disable-dev-shm-usage");
-        options.AddArguments("--no-sandbox");
-        options.AddArgument("--log-level=3");
-        options.AddArguments("user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36");
-        using (var driver = UndetectedChromeDriver.Create(
-			driverExecutablePath:
-			await new ChromeDriverInstaller().Auto(), options: options))
-		{
-
-			driver.GoToUrl(url); //"https://www.tiktok.com/@jinzng169"
-			int lastlocation = -1;
-			OpenQA.Selenium.Support.UI.WebDriverWait wait = new OpenQA.Selenium.Support.UI.WebDriverWait(driver, TimeSpan.FromSeconds(30));
-			wait.Until((x) =>
-			{
-				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
-			});
-
-			while (true)
-			{
-				IJavaScriptExecutor jswait = (IJavaScriptExecutor)driver;
-				driver.ExecuteScript("window.scrollTo(0, document.body.scrollHeight)");
-
-				var currentlocation = int.Parse(driver.ExecuteScript("return window.pageYOffset").ToString());
-                //bool security = driver.PageSource.Contains("security-capcha-"); -- Check security capcha
-				Thread.Sleep(2000);
-                System.Diagnostics.Debug.WriteLine($"Current height {currentlocation}");
-                if (currentlocation == lastlocation) break;
-				lastlocation = currentlocation;
-			}
-
-			string key = $"{driver.Url.Split('/')[3]}/video";
-			var datalist = ExtractLink(driver.PageSource).Where(x => x.Contains(key));
-            Err.Text += $"Total Videos: {datalist.Count()}\n";
-            foreach (var d in datalist)
-			{
-				/*
-                var videourl = d.Split('/');
-                using (WebClient client = new WebClient())
-                {
-                    var urlt = $"https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/feed/?aweme_id={videourl[videourl.Count() - 1]}";
-                    string htmlCode = client.DownloadString(urlt);
-                    Err.Text += $"{GetDownloadUrl(htmlCode)}\n";
-                }
-				*/
-                Err.Text += $"{d}\n";
-            }
-		}
-
-		Err.TextColor = Colors.Green;
-	}
-
-	private List<string> ExtractLink(string data)
-	{
-		List<string> r = new List<string>();
-		Regex regex = new Regex("(?:href|src)=[\"|']?(.*?)[\"|'>]+", RegexOptions.Singleline | RegexOptions.CultureInvariant);
-		if (regex.IsMatch(data))
-		{
-			foreach(Match match in regex.Matches(data))
-			{
-				r.Add(match.Groups[1].Value);
-			}
-		}
-		return r;
-	}
-	private string GetDownloadUrl(string htmlCode)
-	{
-		try
-		{
-            var jsond = JObject.Parse(htmlCode);
-            return jsond["aweme_list"][0]["video"]["play_addr"]["url_list"][0].ToString();
-        }
-		catch (Exception) { }
-		return "";
-    }
-
-    private void UrlTikTok_TextChanged(object sender, TextChangedEventArgs e)
+    protected override void OnAppearing()
     {
-        Err.Text = "";
+        base.OnAppearing();
+        this.Window.MinimumHeight = 800;
+		this.Window.MaximumHeight = 800;
+        this.Window.MinimumWidth = 800;
+        this.Window.MaximumWidth = 800;
+    }
+    private async void btnLogin_Clicked(object sender, EventArgs e)
+    {
+        var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                       { DevicePlatform.iOS, new[] { "public.text" } }, // UTType values  
+                       { DevicePlatform.Android, new[] { "text/plain" } }, // MIME type  
+                       { DevicePlatform.WinUI, new[] { ".txt" } }, // file extension  
+                       { DevicePlatform.macOS, new[] { "txt" } },
+                });
+        var txtlogin = await FilePicker.Default.PickAsync(new PickOptions
+        {
+            PickerTitle = "Chọn file đăng nhập",
+            FileTypes = customFileType
+        });
+
+        loginData.Clear();
+        if (txtlogin != null)
+        {
+            txtLoginPath.Text = txtlogin.FullPath;
+            List<String> logindata = getLoginData(txtLoginPath.Text);
+            foreach (var user in logindata)
+            {
+                loginData.Add(new LoginObject(loginData.Count(), user.Split('|')[0], user.Split('|')[1], "C:\\Users\\hathu\\OneDrive\\Tài liệu\\Datatest\\Videos", "Test tài khoản tải lên"+ loginData.Count(), false, ""));
+            }
+
+            btnAction.IsEnabled = true;
+        }
+        videoobjectCollectionView.ItemsSource = loginData;
+    }
+    private List<String> getLoginData(string path)
+    {
+        List<String> r = new List<String>();
+        try
+        {
+            var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read);
+            using (var streamReader = new StreamReader(fileStream, Encoding.UTF8))
+            {
+                string line;
+                while ((line = streamReader.ReadLine()) != null)
+                {
+                    if (line.Split('|').Count() == 3)
+                    {
+                        r.Add(line);
+                    }
+                }
+            }
+        }
+        catch (Exception) { }
+        return r;
+
     }
 
-	private async void LoginTikTok_Clicked(object sender, EventArgs e)
-	{
-		ChromeOptions options = new ChromeOptions();
-		//options.AddArguments("--headless");
-		options.AddArguments("disable-popup-blocking");
-		options.AddArguments("--disable-extensions");
-		options.AddArguments("--silent");
-		options.AddArguments("--log-lebel=3");
-		using (var driver = UndetectedChromeDriver.Create(
-			driverExecutablePath:
-			await new ChromeDriverInstaller().Auto(), options: options))
-		{
-			driver.GoToUrl("https://www.tiktok.com/login/phone-or-email/email"); //https://www.tiktok.com/login/phone-or-email/email https://www.tiktok.com/foryou
-			OpenQA.Selenium.Support.UI.WebDriverWait wait = new OpenQA.Selenium.Support.UI.WebDriverWait(driver, TimeSpan.FromSeconds(30));
-			wait.Until((x) =>
-			{
-				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
-			});
+    private void btnAction_Clicked(object sender, EventArgs e)
+    {
+        List<LoginObject> t = new List<LoginObject>();
+        foreach (var item in loginData) { t.Add(item); }
+        System.Threading.ThreadPool.QueueUserWorkItem(async delegate
+        {
+            PostVideoBackJob(t);
+        }, null);
+    }
+    private async void PostVideoBackJob(List<LoginObject> loginobjectdata)
+    {
+        //Chạy cho từng tài khoản
+        foreach (var user in loginobjectdata)
+        {
+            string username = user.Username;
+            string password = user.Password;
+            ChromeOptions options = new ChromeOptions();
+            #region Init options and extension
+            options.AddArguments("--disable-extensions");
+            options.AddArguments("--window-size=2020,1880");
+            options.AddArguments("--start-maximized");
+            options.AddArguments("--proxy-server='direct://'");
+            options.AddArguments("--proxy-bypass-list=*");
+            options.AddArguments("--start-maximized");
+            if (user.isHeadless)
+            {
+                options.AddArguments("--headless=new");
+            }
+            options.AddArguments("--ignore-certificate-errors");
+            options.AddArguments("--allow-running-insecure-content");
+            options.AddArguments("--no-sandbox");
+            options.AddArgument("--log-level=3");
+            options.AddArguments("--mute-audio");
+            #endregion
+
+            using (var driver = UndetectedChromeDriver.Create(
+          driverExecutablePath:
+          await new ChromeDriverInstaller().Install("114.0.5735.16"), options: options, commandTimeout: TimeSpan.FromSeconds(100), hideCommandPromptWindow: true))
+            {
+
+                driver.Manage().Window.Size = new System.Drawing.Size(1920, 1380);
+                OpenQA.Selenium.Support.UI.WebDriverWait wait = new OpenQA.Selenium.Support.UI.WebDriverWait(driver, TimeSpan.FromSeconds(60));
+                #region Login Function
+                LoginZone(driver, username, password);
+                Thread.Sleep(2000);
+                wait.Until((x) =>
+                {
+                    return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+                });
+                #endregion
+                #region Start Job Video
+                #endregion
+                List<String> videos = getVideos(user.VideoPath);
+                var dateup = DateTime.Now.AddDays(1);
+                StartJobVideo(driver, username, password, dateup, user.Caption, videos);
+            }
+        }
+
+    }
+    private void LoginZone(UndetectedChromeDriver driver, string username, string password)
+    {
+        try
+        {
+            OpenQA.Selenium.Support.UI.WebDriverWait wait = new OpenQA.Selenium.Support.UI.WebDriverWait(driver, TimeSpan.FromSeconds(60));
+            driver.GoToUrl("https://www.tiktok.com/login/phone-or-email/email");
+            wait.Until((x) =>
+            {
+                return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
+            });
 
             Random rnd = new Random();
             try // Set Username and password
-			{
-				foreach(var d in Username.Text)
-				{
-                    driver.FindElement(By.ClassName("tiktok-11to27l-InputContainer")).SendKeys(d.ToString());
-                    Thread.Sleep(rnd.Next(200,300));
-                }
-                Thread.Sleep(1000);
-                foreach (var d in Password.Text)
+            {
+                foreach (var d in username)
                 {
-                    driver.FindElement(By.ClassName("tiktok-wv3bkt-InputContainer")).SendKeys(d.ToString());
+                    try
+                    { // With user-agent
+                        driver.FindElement(By.Name("username")).SendKeys($"{d}");
+                    }
+                    catch (Exception) { }
+
                     Thread.Sleep(rnd.Next(200, 300));
                 }
-				while (true)
-				{
-                    Thread.Sleep(2000);
-                    driver.FindElement(By.ClassName("tiktok-11sviba-Button-StyledButton")).Click();
-                    Thread.Sleep(2000);
+                Actions action = new Actions(driver);
+                action.SendKeys(OpenQA.Selenium.Keys.Tab);
+                action.Build().Perform();
+                foreach (var d in password)
+                {
+                    action = new Actions(driver);
+                    action.SendKeys($"{d}");
+                    action.Build().Perform();
+                    Thread.Sleep(rnd.Next(200, 300));
+                }
+                for (int v = 0; v < 3; v++)
+                {
+                    action = new Actions(driver);
+                    action.SendKeys(OpenQA.Selenium.Keys.Tab);
+                    action.Build().Perform();
+                }
+                int i = 0;
+                while (true)
+                {
+                    try
+                    {
+                        driver.FindElement(By.XPath($"//button[text()='Log in']")).Click();
+                    }
+                    catch (Exception) { }
+                    Thread.Sleep(8000);
                     if (!driver.PageSource.Contains("Maximum number of attempts reached"))
-						break;                 
+                    {
+                        Thread.Sleep(3000);
+                        if (driver.PageSource.Contains("Drag the slider to fit the puzzle"))
+                        {
+                            while (true)
+                            {
+                                if (!driver.PageSource.Contains("Drag the slider to fit the puzzle"))
+                                    break;
+                            }
+                            Thread.Sleep(3000);
+                        }
+                        else { break; }
+                    }
                 }
             }
-			catch (Exception ex) { }
-            Thread.Sleep(5000);
-            wait.Until((x) =>
-            {
-                return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
-            });
+            catch (Exception ex) { }
 
-            /* Old logic code, after finish load, swith driver to iframe driver.switchTo().frame("iFrameName");
-			driver.GoToUrl("https://www.tiktok.com/upload?lang=en");
-			wait.Until((x) =>
-			{
-				return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
-			});
-			Thread.Sleep(10000);
-			System.Diagnostics.Debug.WriteLine(driver.PageSource);
-			driver.FindElement(By.ClassName("css-1db5cpb")).Click();
-			*/
+            driver.Manage().Timeouts().PageLoad.Add(System.TimeSpan.FromSeconds(20));
+        }
+        catch (Exception ex) { }
+    }
+
+    private void StartJobVideo(UndetectedChromeDriver driver, string username, string password, DateTime dateup, string caption, List<String> videos)
+    {
+        OpenQA.Selenium.Support.UI.WebDriverWait wait = new OpenQA.Selenium.Support.UI.WebDriverWait(driver, TimeSpan.FromSeconds(60));
+        Random rnd = new Random();
+        foreach (var video in videos)
+        {
             driver.GoToUrl("https://www.tiktok.com/creator#/upload?lang=en");
+
+            Thread.Sleep(2000);
             wait.Until((x) =>
             {
                 return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
-            });	
-            Thread.Sleep(5000);
-            
-            //driver.FindElement(By.ClassName("css-1db5cpb")).Click();
-            driver.FindElement(By.XPath("//input[@type='file']")).SendKeys(@$"{VideoPath.Text}");
-            Thread.Sleep(5000);
+            });
+            Thread.Sleep(10000);
+
+            #region Start Upload Video
+            driver.FindElement(By.XPath("//input[@type='file']")).SendKeys(video.ToString());
+            Thread.Sleep(1000);
 
             wait.Until((x) =>
             {
                 return ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete");
             });
+            while (true)
+            {
+                var status = driver.FindElement(By.ClassName("css-y1m958"));
+                if (status != null && status.Enabled) break;
+                Thread.Sleep(2000);
+            }
+            Thread.Sleep(5000);
+            try
+            {
 
-            Thread.Sleep(1000);
-			try
-			{
+                driver.FindElement(By.ClassName("css-72rvq0")).Click(); // Click not now to split video.
+            }
+            catch (Exception ex) { }
+            #endregion
+
+            #region Schedule Video                 
+            Thread.Sleep(3000);
+            try
+            {
+                driver.FindElement(By.XPath("//input[@id='tux-3']")).Click();
+            }
+            catch (Exception ex) { }
+            try
+            {
+
+                driver.FindElement(By.XPath("//div[@id='tux-3']")).Click();
+            }
+            catch (Exception ex) { }
+            #region Turn off slpit alert and allow permission.
+            Thread.Sleep(2000);
+            try
+            {
+
+                driver.FindElement(By.XPath("//div[contains(@class, 'tiktok-modal__modal-button is-highlight')]")).Click();
+            }
+            catch (Exception ex) { }
+            Thread.Sleep(2000);
+            try
+            {
 
                 driver.FindElement(By.ClassName("css-72rvq0")).Click();
-            } catch (Exception ex) { }
+            }
+            catch (Exception ex) { }
+            Thread.Sleep(2000);
+            try
+            {
 
-            foreach (var d in Title.Text.ToString())
+                driver.FindElement(By.XPath("//div[contains(@class, 'tiktok-modal__modal-button is-highlight')]")).Click();
+            }
+            catch (Exception ex) { }
+            Thread.Sleep(2000);
+            #endregion
+            #endregion
+
+            var hour = dateup.ToString("HH");
+            var min = dateup.ToString("mm");
+
+
+            var t = driver.FindElements(By.XPath("//span[@class='jsx-3471246984']"));
+            if (t != null && t.Any())
+            {
+                foreach (var item in t)
+                {
+                    if (!string.IsNullOrEmpty(item.Text))
+                    {
+                        // Check Datetime
+                        if (item.Text.Split('-').Count() == 3)
+                        {
+                            try
+                            {
+                                if (dateup.Day != DateTime.Now.Day)
+                                {
+                                    driver.FindElement(By.ClassName("date-picker-input")).Click();
+                                    Thread.Sleep(2000);
+                                    driver.FindElement(By.XPath($"//span[contains(@class,'jsx-4172176419') and contains(@class,'valid')][text()='{dateup.Day}']")).Click();
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                            }
+                        }
+                    }
+                }
+            }
+            driver.FindElement(By.ClassName("public-DraftStyleDefault-block")).SendKeys(OpenQA.Selenium.Keys.Control + "a");
+            driver.FindElement(By.ClassName("public-DraftStyleDefault-block")).SendKeys(OpenQA.Selenium.Keys.Delete);
+            foreach (var d in caption)
             {
                 driver.FindElement(By.ClassName("public-DraftStyleDefault-block")).SendKeys(d.ToString());
                 Thread.Sleep(rnd.Next(200, 300));
             }
-
+            Thread.Sleep(2000);
             driver.FindElement(By.ClassName("css-y1m958")).Click();
-
-            Thread.Sleep(5000);
-        };
-	}
+            Thread.Sleep(10000);
+        }
+    }
+    public List<String> getVideos(string path)
+    {
+        List<String> r = new List<String>();
+        foreach (string f in Directory.GetFiles(path))
+        {
+            if (f.Contains(".mp4"))
+                r.Add(f);
+        }
+        return r;
+    }
 }
 
